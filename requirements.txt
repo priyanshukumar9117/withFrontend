@@ -1,0 +1,14 @@
+Django>=4.2,<5.0
+djangorestframework
+python-telegram-bot
+chromadb
+langchain
+langchain-community
+pypdf
+sentence-transformers
+openai-whisper
+gTTS
+pyttsx3
+python-dotenv
+requests
+imageio-ffmpeg
