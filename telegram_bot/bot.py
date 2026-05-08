@@ -18,7 +18,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.effective_user.first_name
     welcome_msg = (
         f"नमस्कार {user_name}! 🙏\n"
-        "Welcome to *Kisan_Sarthi*! 🌾\n\n"
+        "Welcome to *Kisan_Setu AI(किसान सेतु)*! 🌾\n\n"
         "I am your AI-powered agricultural assistant for Bihar farmers. I can help you with:\n"
         "✅ Crop Diseases & Treatments (Rice, Wheat, Maize, Pulses)\n"
         "✅ Fertilizer Recommendations for Bihar soil\n"

@@ -374,7 +374,7 @@ async def process_disease_detection(update, user_id, image_path, crop_type):
 {treatment.get('prevention', 'Follow good agricultural practices')}
             """
             
-            await processing_msg.edit_text(response_text, parse_mode='Markdown')
+            await processing_msg.edit_text(response_text, parse_mode='MarkdownV2')
         else:
             await processing_msg.edit_text("❌ Failed to analyze image. Please try again.")
             

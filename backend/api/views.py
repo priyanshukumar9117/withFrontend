@@ -8,6 +8,7 @@ from llm.generator import generate_response
 from rag.retriever import retrieve_context
 from stt.transcriber import transcribe_audio
 from tts.speaker import generate_audio
+from django.conf import settings
 
 @api_view(['POST'])
 def set_language(request):
@@ -50,6 +51,14 @@ def query_bot(request):
         
     user, _ = UserSettings.objects.get_or_create(user_id=user_id)
     
+    # Update language and mode if provided in the request
+    if 'language' in request.data:
+        user.language = request.data.get('language')
+        user.save()
+    if 'mode' in request.data:
+        user.mode = request.data.get('mode')
+        user.save()
+
     text = request.data.get('text', '')
     audio_file = request.FILES.get('audio') # if user sends voice
     
@@ -73,18 +82,24 @@ def query_bot(request):
     # 2. LLM inference via Ollama
     response_text = generate_response(text, context, language=user.language)
     
-    # 3. Generate voice if Voice Mode is active or if user sent audio
-    audio_response_path = ""
+    # 3. Generate voice if Voice Mode is active
+    audio_url = ""
     if user.mode == 'voice' or audio_file:
-        audio_response_path = generate_audio(
+        audio_filename = generate_audio(
             response_text, 
             language=user.language, 
             provider=user.tts_provider
         )
+        if audio_filename:
+            # Construct absolute URL for the audio file
+            filename = os.path.basename(audio_filename)
+            audio_url = request.build_absolute_uri(settings.MEDIA_URL + filename)
         
     return Response({
         "status": "success",
         "query": text,
         "response_text": response_text,
-        "audio_file": audio_response_path
+        "audio_url": audio_url,
+        "language": user.language,
+        "mode": user.mode
     })
