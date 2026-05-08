@@ -68,7 +68,7 @@ Open another terminal and run the startup script:
 ```bash
 ./start_frontend.sh
 ```
-Visit **`http://localhost:3000`** in your browser to experience the new Kisan_Setu AI.
+Visit **``http://localhost:3000** in your browser to experience the new Kisan_Setu AI.
 
 ---
 

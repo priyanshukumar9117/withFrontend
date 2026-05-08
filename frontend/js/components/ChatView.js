@@ -128,10 +128,171 @@ export const ChatView = () => `
             0% { opacity: 1; }
             100% { opacity: 0.2; }
         }
+        /* Audio Controls Styling */
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: var(--radius-md);
+            flex-wrap: wrap;
+        }
+        .audio-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+        .audio-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.1);
+        }
+        .audio-btn:active {
+            transform: scale(0.95);
+        }
+        .audio-btn.playing {
+            background: var(--accent);
+            animation: pulse-btn 0.6s infinite;
+        }
+        @keyframes pulse-btn {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(212, 163, 115, 0.7); }
+            50% { box-shadow: 0 0 0 8px rgba(212, 163, 115, 0); }
+        }
+        .progress-container {
+            flex: 1;
+            min-width: 150px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .time-display {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            min-width: 40px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .progress-bar {
+            flex: 1;
+            height: 4px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 2px;
+            transition: width 0.1s linear;
+            position: relative;
+        }
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: -4px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(45, 90, 39, 0.5);
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .volume-slider {
+            width: 60px;
+            height: 4px;
+            cursor: pointer;
+        }
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.75rem;
+        }
+        .speed-btn {
+            padding: 3px 6px;
+            background: var(--accent-light);
+            color: var(--primary-dark);
+            border: 1px solid var(--primary);
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+        .speed-btn:hover, .speed-btn.active {
+            background: var(--accent);
+            color: white;
+        }
+        .download-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            background: var(--accent);
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.9rem;
+        }
+        .download-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+        .audio-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(45, 90, 39, 0.2);
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
         @media (max-width: 600px) {
             .chat-container { padding: 0 2vw; }
             .chat-messages { max-height: 50vh; }
             .chat-input-area { flex-direction: column; gap: 10px; }
+            .audio-controls {
+                gap: 8px;
+                padding: 8px;
+            }
+            .progress-container {
+                min-width: 120px;
+            }
+            .audio-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 0.8rem;
+            }
         }
     </style>
 `;

@@ -12,7 +12,10 @@ const state = {
         mode: 'text'
     },
     recorder: null,
-    audioChunks: []
+    audioChunks: [],
+    currentAudio: null,
+    currentAudioId: null,
+    playbackRate: 1.0
 };
 
 const appRoot = document.getElementById('app-root');
@@ -64,6 +67,7 @@ function attachListeners() {
         const voiceModeToggle = document.getElementById('voice-mode-toggle');
         const voiceInputBtn = document.getElementById('voice-input-btn');
         const voiceStopBtn = document.getElementById('voice-stop-btn');
+        const clearChatBtn = document.getElementById('clear-chat-btn');
         
         if (sendBtn && input) {
             sendBtn.onclick = () => handleSendMessage();
@@ -94,6 +98,9 @@ function attachListeners() {
         }
         if (voiceStopBtn) {
             voiceStopBtn.onclick = () => stopVoicePlayback();
+        }
+        if (clearChatBtn) {
+            clearChatBtn.onclick = () => clearChatHistory();
         }
     }
 }
@@ -146,10 +153,7 @@ async function handleVoiceUpload() {
         
         if (data.status === 'success') {
             appendMessage(data.query, 'user'); // Show transcribed text
-            appendMessage(data.response_text, 'ai');
-            if (data.audio_url) {
-                playAudio(data.audio_url);
-            }
+            appendMessage(data.response_text, 'ai', false, data.audio_url);
         } else {
             appendMessage("Sorry, I couldn't understand that audio.", 'ai');
         }
@@ -192,10 +196,7 @@ async function handleSendMessage() {
         removeMessage(typingId);
         
         if (data.status === 'success') {
-            appendMessage(data.response_text, 'ai');
-            if (data.audio_url) {
-                playAudio(data.audio_url);
-            }
+            appendMessage(data.response_text, 'ai', false, data.audio_url);
         } else {
             appendMessage("Sorry, I'm having trouble connecting.", 'ai');
         }
@@ -205,33 +206,187 @@ async function handleSendMessage() {
     }
 }
 
-let currentAudio = null;
-function playAudio(url) {
-    stopVoicePlayback();
-    currentAudio = new Audio(url);
-    const stopBtn = document.getElementById('voice-stop-btn');
-    if (stopBtn) stopBtn.style.display = 'inline-flex';
-    currentAudio.onended = () => {
-        if (stopBtn) stopBtn.style.display = 'none';
-        currentAudio = null;
-    };
-    currentAudio.play().catch(e => {
-        if (stopBtn) stopBtn.style.display = 'none';
-        console.error("Audio playback failed:", e);
-    });
-}
-
 function stopVoicePlayback() {
-    if (currentAudio) {
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-        currentAudio = null;
+    if (state.currentAudio) {
+        state.currentAudio.pause();
+        state.currentAudio.currentTime = 0;
+        
+        // Update UI to show stopped state before resetting
+        if (state.currentAudioId) {
+            const playBtn = document.querySelector(`[data-audio-id="${state.currentAudioId}"] .audio-play-btn`);
+            if (playBtn) {
+                playBtn.classList.remove('playing');
+                playBtn.innerHTML = '▶';
+            }
+        }
+        
+        state.currentAudio = null;
+        state.currentAudioId = null;
     }
     const stopBtn = document.getElementById('voice-stop-btn');
     if (stopBtn) stopBtn.style.display = 'none';
 }
 
-function appendMessage(text, sender, isTemp = false) {
+// Audio Control Functions
+function createAudioControls(audioUrl, messageId) {
+    if (!audioUrl) return '';
+    
+    const audioId = `audio_${messageId}`;
+    return `
+        <div class="audio-controls" data-audio-id="${audioId}">
+            <button class="audio-btn audio-play-btn" onclick="window.playAudioMessage('${audioId}', '${audioUrl}')" title="Play audio">
+                ▶
+            </button>
+            <div class="progress-container">
+                <span class="time-display"><span class="current-time">0:00</span> / <span class="total-time">0:00</span></span>
+                <div class="progress-bar" onclick="window.seekAudio(event, '${audioId}')">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="volume-control">
+                <span style="font-size: 0.8rem;">🔊</span>
+                <input type="range" class="volume-slider" min="0" max="100" value="100" 
+                       onchange="window.changeVolume('${audioId}', this.value)">
+            </div>
+            <div class="speed-control">
+                <button class="speed-btn" data-speed="0.75" onclick="window.changeSpeed('${audioId}', 0.75)">0.75x</button>
+                <button class="speed-btn active" data-speed="1.0" onclick="window.changeSpeed('${audioId}', 1.0)">1x</button>
+                <button class="speed-btn" data-speed="1.25" onclick="window.changeSpeed('${audioId}', 1.25)">1.25x</button>
+                <button class="speed-btn" data-speed="1.5" onclick="window.changeSpeed('${audioId}', 1.5)">1.5x</button>
+            </div>
+            <button class="download-btn" onclick="window.downloadAudio('${audioUrl}')" title="Download audio">
+                ⬇
+            </button>
+        </div>
+    `;
+}
+
+// Global audio functions exposed to window
+window.playAudioMessage = function(audioId, audioUrl) {
+    const controls = document.querySelector(`[data-audio-id="${audioId}"]`);
+    const playBtn = controls.querySelector('.audio-play-btn');
+    
+    if (state.currentAudioId === audioId && state.currentAudio && !state.currentAudio.paused) {
+        // Pause current audio
+        state.currentAudio.pause();
+        playBtn.classList.remove('playing');
+        playBtn.innerHTML = '▶';
+    } else {
+        // Stop previous audio if any
+        if (state.currentAudioId && state.currentAudioId !== audioId) {
+            const prevPlayBtn = document.querySelector(`[data-audio-id="${state.currentAudioId}"] .audio-play-btn`);
+            if (state.currentAudio) {
+                state.currentAudio.pause();
+            }
+            if (prevPlayBtn) {
+                prevPlayBtn.classList.remove('playing');
+                prevPlayBtn.innerHTML = '▶';
+            }
+        }
+        
+        // Create or reuse audio element
+        if (!state.currentAudio || state.currentAudioId !== audioId) {
+            state.currentAudio = new Audio(audioUrl);
+            state.currentAudio.playbackRate = state.playbackRate;
+            
+            state.currentAudio.onloadedmetadata = () => {
+                updateAudioDuration(audioId, state.currentAudio.duration);
+            };
+            
+            state.currentAudio.ontimeupdate = () => {
+                updateAudioProgress(audioId, state.currentAudio);
+            };
+            
+            state.currentAudio.onended = () => {
+                playBtn.classList.remove('playing');
+                playBtn.innerHTML = '▶';
+                controls.querySelector('.progress-fill').style.width = '0%';
+                controls.querySelector('.current-time').textContent = '0:00';
+                state.currentAudio = null;
+            };
+            
+            state.currentAudio.onerror = () => {
+                console.error('Audio playback error');
+                alert('Failed to play audio. Please check your connection.');
+                // Reset UI on error
+                playBtn.classList.remove('playing');
+                playBtn.innerHTML = '▶';
+                state.currentAudio = null;
+                state.currentAudioId = null;
+            };
+        }
+        
+        state.currentAudioId = audioId;
+        state.currentAudio.play().catch(e => console.error('Audio play error:', e));
+        playBtn.classList.add('playing');
+        playBtn.innerHTML = '⏸';
+    }
+    
+    const stopBtn = document.getElementById('voice-stop-btn');
+    if (stopBtn && state.currentAudio && !state.currentAudio.paused) {
+        stopBtn.style.display = 'inline-flex';
+    }
+};
+
+window.seekAudio = function(event, audioId) {
+    if (!state.currentAudio || state.currentAudioId !== audioId || !state.currentAudio.duration) return;
+    
+    const progressBar = event.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const percent = (event.clientX - rect.left) / rect.width;
+    const newTime = percent * state.currentAudio.duration;
+    state.currentAudio.currentTime = Math.max(0, Math.min(newTime, state.currentAudio.duration));
+};
+
+window.changeVolume = function(audioId, value) {
+    if (!state.currentAudio || state.currentAudioId !== audioId) return;
+    state.currentAudio.volume = parseInt(value) / 100;
+};
+
+window.changeSpeed = function(audioId, speed) {
+    if (!state.currentAudio || state.currentAudioId !== audioId) return;
+    state.playbackRate = parseFloat(speed);
+    state.currentAudio.playbackRate = parseFloat(speed);
+    
+    // Update UI
+    const controls = document.querySelector(`[data-audio-id="${audioId}"]`);
+    controls.querySelectorAll('.speed-btn').forEach(btn => btn.classList.remove('active'));
+    controls.querySelector(`.speed-btn[data-speed="${speed}"]`).classList.add('active');
+};
+
+window.downloadAudio = function(audioUrl) {
+    const link = document.createElement('a');
+    link.href = audioUrl;
+    link.download = `kisan_audio_${Date.now()}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+function updateAudioDuration(audioId, duration) {
+    const controls = document.querySelector(`[data-audio-id="${audioId}"]`);
+    if (controls) {
+        controls.querySelector('.total-time').textContent = formatTime(duration);
+    }
+}
+
+function updateAudioProgress(audioId, audio) {
+    const controls = document.querySelector(`[data-audio-id="${audioId}"]`);
+    if (controls && audio.duration) {
+        const percent = (audio.currentTime / audio.duration) * 100;
+        controls.querySelector('.progress-fill').style.width = percent + '%';
+        controls.querySelector('.current-time').textContent = formatTime(audio.currentTime);
+    }
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
+function appendMessage(text, sender, isTemp = false, audioUrl = null) {
     const chatMessages = document.getElementById('chat-messages');
     if (!chatMessages) return;
     
@@ -239,7 +394,32 @@ function appendMessage(text, sender, isTemp = false) {
     const msgDiv = document.createElement('div');
     msgDiv.id = id;
     msgDiv.className = `message message-${sender}`;
-    msgDiv.innerText = text;
+    
+    if (sender === 'ai') {
+        const textSpan = document.createElement('span');
+        textSpan.className = 'msg-text';
+        textSpan.textContent = text;
+        msgDiv.appendChild(textSpan);
+        
+        // Add audio controls if audio URL is provided
+        if (audioUrl) {
+            msgDiv.setAttribute('data-audio-url', audioUrl); // Store audio URL
+            const audioControlsDiv = document.createElement('div');
+            audioControlsDiv.innerHTML = createAudioControls(audioUrl, id);
+            const controlsElement = audioControlsDiv.firstElementChild;
+            if (controlsElement) {
+                msgDiv.appendChild(controlsElement);
+            }
+        }
+        
+        const metaSpan = document.createElement('span');
+        metaSpan.className = 'msg-meta';
+        metaSpan.innerHTML = `AI • <span class="msg-time">Now</span>`;
+        msgDiv.appendChild(metaSpan);
+    } else {
+        msgDiv.textContent = text;
+    }
+    
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return id;
@@ -251,13 +431,36 @@ function removeMessage(id) {
 }
 
 // Chat history persistence
+function clearChatHistory() {
+    if (confirm('Are you sure you want to clear all chat history?')) {
+        const chatMessages = document.getElementById('chat-messages');
+        if (chatMessages) {
+            chatMessages.innerHTML = '';
+            // Add welcome message back
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'message message-ai';
+            welcomeDiv.innerHTML = `
+                <span class="msg-text">Namaste! I am your Kisan_Setu assistant. How can I help you today?</span>
+                <span class="msg-meta">AI • <span class="msg-time">Now</span></span>
+            `;
+            chatMessages.appendChild(welcomeDiv);
+        }
+        localStorage.removeItem('chat_history_' + state.user.id);
+        stopVoicePlayback();
+    }
+}
+
 function saveChatHistory() {
     const chatMessages = document.getElementById('chat-messages');
     if (!chatMessages) return;
-    const messages = Array.from(chatMessages.children).map(m => ({
-        text: m.innerText,
-        sender: m.classList.contains('message-user') ? 'user' : 'ai'
-    }));
+    const messages = Array.from(chatMessages.children).map(m => {
+        const audioUrl = m.getAttribute('data-audio-url') || null;
+        return {
+            text: m.querySelector('.msg-text')?.textContent || m.innerText,
+            sender: m.classList.contains('message-user') ? 'user' : 'ai',
+            audioUrl: audioUrl
+        };
+    });
     localStorage.setItem('chat_history_' + state.user.id, JSON.stringify(messages));
 }
 
@@ -268,7 +471,7 @@ function loadChatHistory() {
     if (saved) {
         chatMessages.innerHTML = '';
         JSON.parse(saved).forEach(msg => {
-            appendMessage(msg.text, msg.sender);
+            appendMessage(msg.text, msg.sender, false, msg.audioUrl);
         });
     }
 }
@@ -280,9 +483,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Save chat history on every message
 const origAppendMessage = appendMessage;
-appendMessage = function(text, sender, isTemp = false) {
-    const id = origAppendMessage(text, sender, isTemp);
-    saveChatHistory();
+appendMessage = function(text, sender, isTemp = false, audioUrl = null) {
+    const id = origAppendMessage(text, sender, isTemp, audioUrl);
+    if (!isTemp) {
+        saveChatHistory();
+    }
     return id;
 };
 
