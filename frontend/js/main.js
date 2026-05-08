@@ -239,9 +239,8 @@ function createAudioControls(audioUrl, messageId) {
             </button>
             <div class="progress-container">
                 <span class="time-display"><span class="current-time">0:00</span> / <span class="total-time">0:00</span></span>
-                <div class="progress-bar" onclick="window.seekAudio(event, '${audioId}')">
-                    <div class="progress-fill" style="width: 0%"></div>
-                </div>
+                <input type="range" class="seek-slider" min="0" max="100" value="0" step="0.1" 
+                       oninput="window.seekAudioBySlider('${audioId}', this.value)">
             </div>
             <div class="volume-control">
                 <span style="font-size: 0.8rem;">🔊</span>
@@ -300,7 +299,7 @@ window.playAudioMessage = function(audioId, audioUrl) {
             state.currentAudio.onended = () => {
                 playBtn.classList.remove('playing');
                 playBtn.innerHTML = '▶';
-                controls.querySelector('.progress-fill').style.width = '0%';
+                controls.querySelector('.seek-slider').value = '0';
                 controls.querySelector('.current-time').textContent = '0:00';
                 state.currentAudio = null;
             };
@@ -335,6 +334,14 @@ window.seekAudio = function(event, audioId) {
     const rect = progressBar.getBoundingClientRect();
     const percent = (event.clientX - rect.left) / rect.width;
     const newTime = percent * state.currentAudio.duration;
+    state.currentAudio.currentTime = Math.max(0, Math.min(newTime, state.currentAudio.duration));
+};
+
+window.seekAudioBySlider = function(audioId, value) {
+    if (!state.currentAudio || state.currentAudioId !== audioId || !state.currentAudio.duration) return;
+    
+    const percent = parseFloat(value);
+    const newTime = (percent / 100) * state.currentAudio.duration;
     state.currentAudio.currentTime = Math.max(0, Math.min(newTime, state.currentAudio.duration));
 };
 
@@ -374,7 +381,7 @@ function updateAudioProgress(audioId, audio) {
     const controls = document.querySelector(`[data-audio-id="${audioId}"]`);
     if (controls && audio.duration) {
         const percent = (audio.currentTime / audio.duration) * 100;
-        controls.querySelector('.progress-fill').style.width = percent + '%';
+        controls.querySelector('.seek-slider').value = percent;
         controls.querySelector('.current-time').textContent = formatTime(audio.currentTime);
     }
 }
@@ -394,31 +401,38 @@ function appendMessage(text, sender, isTemp = false, audioUrl = null) {
     const msgDiv = document.createElement('div');
     msgDiv.id = id;
     msgDiv.className = `message message-${sender}`;
-    
-    if (sender === 'ai') {
-        const textSpan = document.createElement('span');
-        textSpan.className = 'msg-text';
-        textSpan.textContent = text;
-        msgDiv.appendChild(textSpan);
-        
-        // Add audio controls if audio URL is provided
-        if (audioUrl) {
-            msgDiv.setAttribute('data-audio-url', audioUrl); // Store audio URL
-            const audioControlsDiv = document.createElement('div');
-            audioControlsDiv.innerHTML = createAudioControls(audioUrl, id);
-            const controlsElement = audioControlsDiv.firstElementChild;
-            if (controlsElement) {
-                msgDiv.appendChild(controlsElement);
-            }
+
+    const avatarDiv = document.createElement('div');
+    avatarDiv.className = 'message-avatar';
+    avatarDiv.textContent = sender === 'ai' ? '🤖' : '👤';
+
+    const bodyDiv = document.createElement('div');
+    bodyDiv.className = 'message-body';
+
+    const textSpan = document.createElement('span');
+    textSpan.className = 'msg-text';
+    textSpan.textContent = text;
+    bodyDiv.appendChild(textSpan);
+
+    if (sender === 'ai' && audioUrl) {
+        msgDiv.setAttribute('data-audio-url', audioUrl); // Store audio URL
+        const audioControlsDiv = document.createElement('div');
+        audioControlsDiv.innerHTML = createAudioControls(audioUrl, id);
+        const controlsElement = audioControlsDiv.firstElementChild;
+        if (controlsElement) {
+            bodyDiv.appendChild(controlsElement);
         }
-        
-        const metaSpan = document.createElement('span');
-        metaSpan.className = 'msg-meta';
-        metaSpan.innerHTML = `AI • <span class="msg-time">Now</span>`;
-        msgDiv.appendChild(metaSpan);
-    } else {
-        msgDiv.textContent = text;
     }
+
+    const metaSpan = document.createElement('span');
+    metaSpan.className = 'msg-meta';
+    metaSpan.innerHTML = sender === 'ai'
+        ? `AI • <span class="msg-time">Now</span>`
+        : `You • <span class="msg-time">Now</span>`;
+    bodyDiv.appendChild(metaSpan);
+
+    msgDiv.appendChild(avatarDiv);
+    msgDiv.appendChild(bodyDiv);
     
     chatMessages.appendChild(msgDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
