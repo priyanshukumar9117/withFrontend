@@ -20,6 +20,16 @@ const state = {
 
 const appRoot = document.getElementById('app-root');
 
+if (window.marked) {
+    window.marked.setOptions({
+        gfm: true,
+        breaks: true,
+        smartLists: true,
+        smartypants: true,
+        headerIds: false
+    });
+}
+
 // Router
 function navigateTo(view) {
     state.currentView = view;
@@ -393,6 +403,23 @@ function formatTime(seconds) {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
+function renderMarkdown(text, sender) {
+    if (sender === 'ai' && window.marked) {
+        try {
+            return window.marked.parse(text, {
+                gfm: true,
+                breaks: true,
+                smartLists: true,
+                smartypants: true,
+                headerIds: false
+            });
+        } catch (error) {
+            console.warn('Markdown render failed:', error);
+        }
+    }
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function appendMessage(text, sender, isTemp = false, audioUrl = null) {
     const chatMessages = document.getElementById('chat-messages');
     if (!chatMessages) return;
@@ -411,7 +438,7 @@ function appendMessage(text, sender, isTemp = false, audioUrl = null) {
 
     const textSpan = document.createElement('span');
     textSpan.className = 'msg-text';
-    textSpan.textContent = text;
+    textSpan.innerHTML = renderMarkdown(text, sender);
     bodyDiv.appendChild(textSpan);
 
     if (sender === 'ai' && audioUrl) {

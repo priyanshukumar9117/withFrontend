@@ -211,13 +211,13 @@ export const ChatView = () => `
         .message {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 18px;
-            padding: 16px;
-            border-radius: 22px;
-            max-width: 85%;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 12px;
+            border-radius: 20px;
+            max-width: 86%;
             position: relative;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
         .message:hover {
             transform: translateY(-1px);
@@ -256,9 +256,9 @@ export const ChatView = () => `
         .audio-controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 8px;
             width: 100%;
-            padding: 12px 14px 10px;
+            padding: 10px 12px 10px;
             border-radius: 18px;
             background: rgba(255, 255, 255, 0.9);
             border: 1px solid rgba(45, 90, 39, 0.1);
@@ -308,13 +308,90 @@ export const ChatView = () => `
         .audio-controls .speed-control {
             min-width: 0;
         }
+        .message-body {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
         .msg-text {
-            font-size: 1rem;
-            line-height: 1.6;
+            font-size: 0.98rem;
+            line-height: 1.35;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .msg-text h1,
+        .msg-text h2,
+        .msg-text h3,
+        .msg-text h4 {
+            margin: 0 0 0.1rem;
+            font-weight: 700;
+        }
+        .msg-text p {
+            margin: 0 0 0.1rem;
+        }
+        .msg-text hr {
+            border: none;
+            border-top: 1px solid rgba(45, 90, 39, 0.18);
+            margin: 0.15rem 0;
+        }
+        .msg-text blockquote {
+            margin: 0 0 0.1rem;
+            padding: 10px 14px;
+            border-left: 4px solid var(--accent);
+            background: rgba(212, 163, 115, 0.12);
+            color: var(--primary-dark);
+        }
+        .msg-text code {
+            display: inline-block;
+            padding: 2px 5px;
+            border-radius: 7px;
+            background: rgba(45, 90, 39, 0.08);
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+        }
+        .msg-text pre {
+            margin: 0 0 0.1rem;
+            padding: 10px;
+            border-radius: 14px;
+            background: rgba(45, 90, 39, 0.08);
+            overflow-x: auto;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        }
+        .msg-text ol,
+        .msg-text ul {
+            margin: 0 0 0.1rem 1.2rem;
+            padding-left: 1rem;
+        }
+        .msg-text li {
+            margin: 0 0;
+        }
+        .msg-text table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 0 0.1rem;
+            min-width: 280px;
+        }
+        .msg-text th,
+        .msg-text td {
+            border: 1px solid rgba(45, 90, 39, 0.14);
+            padding: 6px 8px;
+            text-align: left;
+        }
+        .msg-text th {
+            background: rgba(45, 90, 39, 0.1);
+            font-weight: 700;
+        }
+        .msg-text tbody tr:nth-child(even) {
+            background: rgba(45, 90, 39, 0.04);
+        }
+        .msg-text strong,
+        .msg-text em {
+            font-weight: 600;
         }
         .msg-meta {
             align-self: flex-start;
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 999px;
             background: rgba(255, 255, 255, 0.7);
             font-size: 0.78rem;

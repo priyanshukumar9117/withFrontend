@@ -9,6 +9,7 @@ sentence-transformers
 openai-whisper
 gTTS
 pyttsx3
+edge-tts
 python-dotenv
 requests
 imageio-ffmpeg
