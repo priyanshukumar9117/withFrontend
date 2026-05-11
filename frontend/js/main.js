@@ -192,6 +192,7 @@ function startLegacyRecorder() {
         .catch(err => {
             console.error('Mic access denied:', err);
             appendMessage('Error: Please allow microphone access.', 'ai');
+            resetVoiceButton();
         });
 }
 
@@ -201,13 +202,18 @@ function stopSpeechRecognition() {
         state.recognition.stop();
     }
     state.isListening = false;
-    if (btn) {
-        btn.classList.remove('recording');
-        btn.style.background = 'var(--primary)';
-    }
+    resetVoiceButton();
     if (state.interimMessageId) {
         removeMessage(state.interimMessageId);
         state.interimMessageId = null;
+    }
+}
+
+function resetVoiceButton() {
+    const btn = document.getElementById('voice-input-btn');
+    if (btn) {
+        btn.classList.remove('recording');
+        btn.style.background = '';
     }
 }
 
@@ -226,6 +232,7 @@ function handleSpeechResult(event) {
     }
 
     state.isListening = false;
+    resetVoiceButton();
     if (state.interimMessageId) {
         removeMessage(state.interimMessageId);
         state.interimMessageId = null;
@@ -306,6 +313,8 @@ async function handleVoiceUpload() {
         removeMessage(typingId);
         appendMessage('Connection error. Ensure backend is running.', 'ai');
     }
+    
+    resetVoiceButton();
 }
 
 function removeMessageByText(text) {
