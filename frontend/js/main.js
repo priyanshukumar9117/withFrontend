@@ -1,7 +1,6 @@
 // Kisan_Setu AI - Main Script
 import { LandingView } from './components/LandingView.js';
 import { ChatView } from './components/ChatView.js';
-import { DashboardView } from './components/DashboardView.js';
 import { AboutView } from './components/AboutView.js';
 
 const state = {
@@ -52,9 +51,6 @@ function render() {
             break;
         case 'chat':
             content = ChatView();
-            break;
-        case 'dashboard':
-            content = DashboardView();
             break;
         case 'about':
             content = AboutView();
