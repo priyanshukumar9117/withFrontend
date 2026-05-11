@@ -12,6 +12,9 @@ const state = {
         mode: 'text'
     },
     recorder: null,
+    recognition: null,
+    isListening: false,
+    interimMessageId: null,
     audioChunks: [],
     currentAudio: null,
     currentAudioId: null,
@@ -115,30 +118,166 @@ function attachListeners() {
     }
 }
 
-async function toggleRecording() {
+function getSpeechRecognitionLanguage(lang) {
+    switch (lang) {
+        case 'hi':
+            return 'hi-IN';
+        case 'bho':
+            return 'en-IN';
+        case 'en':
+        default:
+            return 'en-US';
+    }
+}
+
+function createSpeechRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return null;
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = getSpeechRecognitionLanguage(state.user.language);
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognition.continuous = false;
+
+    recognition.onresult = handleSpeechResult;
+    recognition.onerror = handleSpeechError;
+    recognition.onend = handleSpeechEnd;
+
+    return recognition;
+}
+
+function toggleRecording() {
     const btn = document.getElementById('voice-input-btn');
-    if (!state.recorder || state.recorder.state === 'inactive') {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (state.isListening) {
+        stopSpeechRecognition();
+        return;
+    }
+
+    if (!SpeechRecognition) {
+        startLegacyRecorder();
+        return;
+    }
+
+    state.recognition = createSpeechRecognition();
+    if (!state.recognition) {
+        startLegacyRecorder();
+        return;
+    }
+
+    try {
+        state.recognition.start();
+        state.isListening = true;
+        btn.classList.add('recording');
+        btn.style.background = 'var(--error)';
+        state.interimMessageId = appendMessage('Listening... Speak now.', 'ai', true);
+    } catch (err) {
+        console.error('Speech recognition failed:', err);
+        appendMessage('Speech recognition not available. Using legacy recorder.', 'ai');
+        startLegacyRecorder();
+    }
+}
+
+function startLegacyRecorder() {
+    const btn = document.getElementById('voice-input-btn');
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
             state.recorder = new MediaRecorder(stream);
             state.audioChunks = [];
-
             state.recorder.ondataavailable = (e) => state.audioChunks.push(e.data);
             state.recorder.onstop = () => handleVoiceUpload();
-
             state.recorder.start();
             btn.classList.add('recording');
             btn.style.background = 'var(--error)';
-            appendMessage("Listening... Speak now.", 'ai', true);
-        } catch (err) {
-            console.error("Mic access denied:", err);
-            appendMessage("Error: Please allow microphone access.", 'ai');
-        }
-    } else {
-        state.recorder.stop();
+            state.interimMessageId = appendMessage('Listening... Speak now.', 'ai', true);
+        })
+        .catch(err => {
+            console.error('Mic access denied:', err);
+            appendMessage('Error: Please allow microphone access.', 'ai');
+        });
+}
+
+function stopSpeechRecognition() {
+    const btn = document.getElementById('voice-input-btn');
+    if (state.recognition) {
+        state.recognition.stop();
+    }
+    state.isListening = false;
+    if (btn) {
         btn.classList.remove('recording');
         btn.style.background = 'var(--primary)';
-        removeMessageByText("Listening... Speak now.");
+    }
+    if (state.interimMessageId) {
+        removeMessage(state.interimMessageId);
+        state.interimMessageId = null;
+    }
+}
+
+function handleSpeechResult(event) {
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+    }
+
+    if (!event.results[0].isFinal) {
+        if (state.interimMessageId) {
+            const interimElem = document.getElementById(state.interimMessageId)?.querySelector('.msg-text');
+            if (interimElem) interimElem.textContent = `Listening... ${transcript}`;
+        }
+        return;
+    }
+
+    state.isListening = false;
+    if (state.interimMessageId) {
+        removeMessage(state.interimMessageId);
+        state.interimMessageId = null;
+    }
+
+    appendMessage(transcript, 'user');
+    sendTextQuery(transcript);
+}
+
+function handleSpeechError(event) {
+    console.error('Speech recognition error:', event.error);
+    appendMessage('Speech recognition error occurred. Please try again.', 'ai');
+    stopSpeechRecognition();
+}
+
+function handleSpeechEnd() {
+    if (state.isListening) {
+        state.isListening = false;
+        stopSpeechRecognition();
+    }
+}
+
+async function sendTextQuery(message) {
+    const typingId = appendMessage('Thinking...', 'ai', true);
+
+    try {
+        const response = await fetch('http://localhost:8000/query/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_id: state.user.id,
+                text: message,
+                language: state.user.language,
+                mode: state.user.mode
+            })
+        });
+
+        const data = await response.json();
+        removeMessage(typingId);
+
+        if (data.status === 'success') {
+            appendMessage(data.response_text, 'ai', false, data.audio_url);
+        } else {
+            appendMessage("Sorry, I'm having trouble connecting.", 'ai');
+        }
+    } catch (error) {
+        removeMessage(typingId);
+        appendMessage('Connection error. Ensure backend is running.', 'ai');
     }
 }
 
@@ -162,14 +301,14 @@ async function handleVoiceUpload() {
         removeMessage(typingId);
         
         if (data.status === 'success') {
-            appendMessage(data.query, 'user'); // Show transcribed text
+            appendMessage(data.query, 'user');
             appendMessage(data.response_text, 'ai', false, data.audio_url);
         } else {
             appendMessage("Sorry, I couldn't understand that audio.", 'ai');
         }
     } catch (error) {
         removeMessage(typingId);
-        appendMessage("Connection error. Ensure backend is running.", 'ai');
+        appendMessage('Connection error. Ensure backend is running.', 'ai');
     }
 }
 
