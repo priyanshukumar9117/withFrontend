@@ -20,8 +20,8 @@ export const AboutView = () => `
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <div style="width: 50px; height: 50px; background: var(--primary); border-radius: 50%;"></div>
                         <div>
-                            <div style="font-weight: 600;">Dr. Rajesh Kumar</div>
-                            <div style="font-size: 0.85rem; color: var(--text-muted);">Lead Agronomist</div>
+                            <div style="font-weight: 600;">Priyanshu Kumar</div>
+                            <div style="font-size: 0.85rem; color: var(--text-muted);">Project Lead</div>
                         </div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 15px;">
