@@ -2,7 +2,7 @@ import os
 import requests
 import json
 
-def generate_response(prompt: str, context: str, language: str = 'en') -> str:
+def generate_response(prompt: str, context: str, language: str = 'en', farm_context: str = '') -> str:
     """Generate response using Ollama llama3.2:1b."""
     # Read Ollama url and model from environment variables
     OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
@@ -22,8 +22,17 @@ def generate_response(prompt: str, context: str, language: str = 'en') -> str:
     }
     output_instr = output_policy.get(language, "English only. Do not use Hindi or Bhojpuri.")
 
+    # Build farm profile context injection
+    farm_profile_section = ""
+    if farm_context:
+        farm_profile_section = (
+            f"IMPORTANT - This farmer's profile: {farm_context}. "
+            "Use this information to personalize your response to their specific farm conditions. "
+        )
+
     system_prompt = (
         "You are 'Kisan_Setu', an AI-powered agricultural assistant chatbot designed ONLY for farmers in Bihar, India. "
+        f"{farm_profile_section}"
         "Rules: "
         "- Always provide answers based on Bihar-specific conditions (soil, climate, irrigation, government schemes). "
         "- If a query is about another state or general India, redirect the answer to Bihar context. "
