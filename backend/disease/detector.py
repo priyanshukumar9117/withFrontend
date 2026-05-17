@@ -190,6 +190,21 @@ def build_treatment_prompt(disease_result, language="en"):
 
     symptom_text = f" Observed symptoms: {', '.join(symptoms)}." if symptoms else ""
 
+    # Build language-specific output instruction
+    lang_map = {
+        'hi': 'Hindi (हिन्दी)',
+        'bho': 'Bhojpuri (भोजपुरी)',
+        'en': 'English'
+    }
+    lang_name = lang_map.get(language, 'English')
+
+    lang_output_rules = {
+        'en': "Write your ENTIRE response in English only.",
+        'hi': "अपना पूरा जवाब हिंदी (देवनागरी लिपि) में लिखें। कोई भी अंग्रेजी शब्द न लिखें। Write your ENTIRE response in Hindi (Devanagari script) only. Do NOT use any English.",
+        'bho': "अपना पूरा जवाब भोजपुरी (देवनागरी लिपि) में लिखीं। कोई भी अंग्रेजी शब्द मत लिखीं। Write your ENTIRE response in Bhojpuri (Devanagari script) only. Do NOT use any English.",
+    }
+    lang_instruction = lang_output_rules.get(language, lang_output_rules['en'])
+
     return (
         f"A farmer in Bihar has uploaded a photo of their crop. "
         f"The AI disease detection model identified: '{disease}' "
@@ -200,5 +215,7 @@ def build_treatment_prompt(disease_result, language="en"):
         f"3. Chemical treatment options (with specific pesticide names available in Bihar)\n"
         f"4. Prevention tips for future crops\n"
         f"5. Whether the farmer should contact their local Krishi Vigyan Kendra (KVK)\n\n"
-        f"Keep the response practical and farmer-friendly."
+        f"Keep the response practical and farmer-friendly.\n\n"
+        f"CRITICAL LANGUAGE REQUIREMENT: {lang_instruction}\n"
+        f"You MUST respond in {lang_name} language ONLY. This is mandatory."
     )

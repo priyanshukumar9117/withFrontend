@@ -61,29 +61,48 @@ export function attachAuthListeners() {
 }
 
 // ── Profile ──
+let _cachedProfile = null;
+
 export async function attachProfileListeners(userId) {
     if (!userId) return;
+
+    const displayCard = document.getElementById('profile-display');
+    const formContainer = document.getElementById('profile-form-container');
+    const editBtn = document.getElementById('profile-edit-btn');
+    const cancelBtn = document.getElementById('profile-cancel-btn');
+
     // Load existing profile
     try {
         const res = await fetch(`${API}/api/farm-profile/?user_id=${userId}`);
         const data = await res.json();
-        if (data.profile) {
-            const p = data.profile;
-            const el = (id) => document.getElementById(id);
-            if (el('farmer-name')) el('farmer-name').value = p.farmer_name || '';
-            if (el('farm-district')) el('farm-district').value = p.district || '';
-            if (el('farm-village')) el('farm-village').value = p.village || '';
-            if (el('farm-size')) el('farm-size').value = p.farm_size || '';
-            if (el('soil-type')) el('soil-type').value = p.soil_type || '';
-            if (el('irrigation-source')) el('irrigation-source').value = p.irrigation_source || '';
-            if (p.primary_crops && Array.isArray(p.primary_crops)) {
-                document.querySelectorAll('#crop-checkboxes input[type=checkbox]').forEach(cb => {
-                    cb.checked = p.primary_crops.includes(cb.value);
-                });
-            }
-            showProfileSummary(p);
+        if (data.profile && hasProfileData(data.profile)) {
+            _cachedProfile = data.profile;
+            showProfileDisplay(data.profile);
+            showDisplayMode();
+        } else {
+            showFormMode(false);
         }
-    } catch (e) { console.error('Load profile error:', e); }
+    } catch (e) {
+        console.error('Load profile error:', e);
+        showFormMode(false);
+    }
+
+    // Edit button - switch to form mode
+    if (editBtn) {
+        editBtn.onclick = () => {
+            if (_cachedProfile) fillFormFromProfile(_cachedProfile);
+            showFormMode(true);
+        };
+    }
+
+    // Cancel button - switch back to display mode
+    if (cancelBtn) {
+        cancelBtn.onclick = () => {
+            if (_cachedProfile && hasProfileData(_cachedProfile)) {
+                showDisplayMode();
+            }
+        };
+    }
 
     // Save handler
     const saveBtn = document.getElementById('profile-save-btn');
@@ -106,27 +125,92 @@ export async function attachProfileListeners(userId) {
                 const res = await fetch(`${API}/api/farm-profile/`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 const data = await res.json();
                 if (data.status === 'success') {
+                    _cachedProfile = data.profile;
                     msgEl.textContent = '✅ Profile saved successfully!'; msgEl.className = 'profile-message success'; msgEl.style.display = 'block';
-                    showProfileSummary(data.profile);
-                    setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+                    setTimeout(() => {
+                        msgEl.style.display = 'none';
+                        showProfileDisplay(data.profile);
+                        showDisplayMode();
+                    }, 1200);
                 }
             } catch { msgEl.textContent = '❌ Failed to save profile'; msgEl.className = 'profile-message error'; msgEl.style.display = 'block'; }
         };
     }
+
+    function showDisplayMode() {
+        if (displayCard) displayCard.style.display = 'block';
+        if (formContainer) formContainer.style.display = 'none';
+    }
+
+    function showFormMode(isEditing) {
+        if (displayCard) displayCard.style.display = 'none';
+        if (formContainer) formContainer.style.display = 'block';
+        const cancelBtnEl = document.getElementById('profile-cancel-btn');
+        const formTitle = document.getElementById('form-title');
+        const formSubtitle = document.getElementById('form-subtitle');
+        if (cancelBtnEl) cancelBtnEl.style.display = isEditing ? 'inline-flex' : 'none';
+        if (formTitle) formTitle.textContent = isEditing ? 'Edit Farm Profile' : 'My Farm Profile';
+        if (formSubtitle) formSubtitle.textContent = isEditing ? 'Update your farm details below' : 'Help us give you personalized farming advice';
+    }
 }
 
-function showProfileSummary(p) {
-    const el = document.getElementById('profile-summary');
-    const content = document.getElementById('summary-content');
-    if (!el || !content) return;
+function hasProfileData(p) {
+    return p && (p.farmer_name || p.district || p.village || p.farm_size || (p.primary_crops && p.primary_crops.length) || p.soil_type || p.irrigation_source);
+}
+
+function fillFormFromProfile(p) {
+    const el = (id) => document.getElementById(id);
+    if (el('farmer-name')) el('farmer-name').value = p.farmer_name || '';
+    if (el('farm-district')) el('farm-district').value = p.district || '';
+    if (el('farm-village')) el('farm-village').value = p.village || '';
+    if (el('farm-size')) el('farm-size').value = p.farm_size || '';
+    if (el('soil-type')) el('soil-type').value = p.soil_type || '';
+    if (el('irrigation-source')) el('irrigation-source').value = p.irrigation_source || '';
+    if (p.primary_crops && Array.isArray(p.primary_crops)) {
+        document.querySelectorAll('#crop-checkboxes input[type=checkbox]').forEach(cb => {
+            cb.checked = p.primary_crops.includes(cb.value);
+        });
+    }
+}
+
+function showProfileDisplay(p) {
+    const grid = document.getElementById('profile-details-grid');
+    if (!grid) return;
+
+    const soilLabels = { alluvial: 'Alluvial (जलोढ़)', clay: 'Clay (चिकनी मिट्टी)', sandy: 'Sandy (बालू मिट्टी)', loamy: 'Loamy (दोमट)', red: 'Red (लाल मिट्टी)', black: 'Black (काली मिट्टी)' };
+    const irrigationLabels = { canal: 'Canal (नहर)', tubewell: 'Tube Well (बोरिंग)', pond: 'Pond (तालाब)', rainfed: 'Rainfed (वर्षा आधारित)', river: 'River (नदी)', well: 'Open Well (कुआं)' };
+
     const items = [
-        ['👨‍🌾 Name', p.farmer_name], ['📍 District', p.district], ['🏠 Village', p.village],
-        ['📐 Farm Size', p.farm_size ? `${p.farm_size} bigha` : ''], ['🌾 Crops', (p.primary_crops||[]).join(', ')],
-        ['🏔️ Soil', p.soil_type], ['💧 Irrigation', p.irrigation_source],
-    ].filter(([,v]) => v);
-    if (items.length === 0) { el.style.display = 'none'; return; }
-    content.innerHTML = items.map(([l,v]) => `<div class="summary-item"><span class="summary-label">${l}</span><span class="summary-value">${v}</span></div>`).join('');
-    el.style.display = 'block';
+        { icon: '👨‍🌾', label: 'Farmer Name', value: p.farmer_name },
+        { icon: '📍', label: 'District', value: p.district },
+        { icon: '🏠', label: 'Village', value: p.village },
+        { icon: '📐', label: 'Farm Size', value: p.farm_size ? `${p.farm_size} Bigha` : '' },
+        { icon: '🏔️', label: 'Soil Type', value: soilLabels[p.soil_type] || p.soil_type },
+        { icon: '💧', label: 'Irrigation', value: irrigationLabels[p.irrigation_source] || p.irrigation_source },
+    ].filter(item => item.value);
+
+    const cropEmojiMap = { Rice: '🌾', Wheat: '🌾', Maize: '🌽', Pulses: '🫘', Sugarcane: '🎍', Potato: '🥔', Onion: '🧅', Tomato: '🍅', Vegetables: '🥬', Mustard: '🌻', Banana: '🍌', Mango: '🥭' };
+    const crops = p.primary_crops || [];
+
+    let html = items.map(item => `
+        <div class="profile-detail-item">
+            <span class="profile-detail-label">${item.icon} ${item.label}</span>
+            <span class="profile-detail-value">${item.value}</span>
+        </div>
+    `).join('');
+
+    if (crops.length > 0) {
+        html += `
+            <div class="profile-detail-item full-width">
+                <span class="profile-detail-label">🌾 Primary Crops</span>
+                <span class="profile-detail-value">
+                    ${crops.map(c => `<span class="crop-tag">${cropEmojiMap[c] || '🌱'} ${c}</span>`).join('')}
+                </span>
+            </div>
+        `;
+    }
+
+    grid.innerHTML = html;
 }
 
 // ── Weather ──
@@ -240,12 +324,22 @@ export function attachDiseaseListener(userId, appendMsgFn, removeMsgFn) {
         if (!file) return;
         const user = getStoredUser();
         const uid = user?.user_id || userId;
+
+        // Read current language and voice mode from chat controls
+        const langToggle = document.getElementById('lang-toggle');
+        const voiceModeToggle = document.getElementById('voice-mode-toggle');
+        const currentLang = langToggle ? langToggle.value : 'en';
+        const currentMode = voiceModeToggle && voiceModeToggle.checked ? 'voice' : 'text';
+
+        console.log('[Disease Detection] Sending with language:', currentLang, 'mode:', currentMode);
+
         const typingId = appendMsgFn('🔬 Analyzing crop image...', 'ai', true);
         const formData = new FormData();
         formData.append('image', file);
         formData.append('user_id', uid);
         formData.append('provider', 'gemini');
-        formData.append('language', 'en');
+        formData.append('language', currentLang);
+        formData.append('mode', currentMode);
         try {
             const res = await fetch(`${API}/api/detect-disease/`, { method: 'POST', body: formData });
             const data = await res.json();
@@ -256,7 +350,9 @@ export function attachDiseaseListener(userId, appendMsgFn, removeMsgFn) {
                 if (imgUrl) html += `<img src="${imgUrl}" class="disease-image-preview" alt="Uploaded crop image">`;
                 html += `<div class="disease-header"><span class="disease-name">🌿 ${data.disease}</span><span class="disease-confidence">${data.confidence}% confidence</span></div>`;
                 if (data.treatment) html += `<div>${window.marked ? window.marked.parse(data.treatment) : data.treatment}</div>`;
-                appendMsgFn(html, 'ai', false, null, true);
+                // Pass audio_url if voice mode generated audio
+                const audioUrl = data.audio_url || null;
+                appendMsgFn(html, 'ai', false, audioUrl, true);
             } else {
                 appendMsgFn('❌ Disease detection failed: ' + (data.error || 'Unknown error'), 'ai');
             }

@@ -1,16 +1,41 @@
 export const ProfileView = () => `
     <section class="profile-section">
         <div class="container">
-            <div class="profile-grid">
+            <!-- Profile Summary (shown when profile exists) -->
+            <div class="profile-card profile-display-card" id="profile-display" style="display:none;">
+                <div class="profile-card-header">
+                    <div class="profile-icon summary-icon">
+                        <i data-lucide="user-check"></i>
+                    </div>
+                    <div>
+                        <h2>My Farm Profile</h2>
+                        <p>Your saved farm details</p>
+                    </div>
+                    <button class="btn btn-outline profile-edit-btn" id="profile-edit-btn">
+                        <i data-lucide="pencil" style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:6px;"></i>
+                        Edit Details
+                    </button>
+                </div>
+                <div class="profile-details-grid" id="profile-details-grid">
+                    <!-- Filled by JS -->
+                </div>
+            </div>
+
+            <!-- Profile Form (shown when no profile or editing) -->
+            <div class="profile-grid" id="profile-form-container">
                 <div class="profile-card profile-form-card">
                     <div class="profile-card-header">
                         <div class="profile-icon">
                             <i data-lucide="tractor"></i>
                         </div>
                         <div>
-                            <h2>My Farm Profile</h2>
-                            <p>Help us give you personalized farming advice</p>
+                            <h2 id="form-title">My Farm Profile</h2>
+                            <p id="form-subtitle">Help us give you personalized farming advice</p>
                         </div>
+                        <button class="btn btn-outline profile-cancel-btn" id="profile-cancel-btn" style="display:none;">
+                            <i data-lucide="x" style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:6px;"></i>
+                            Cancel
+                        </button>
                     </div>
 
                     <form id="profile-form" class="profile-form" onsubmit="return false;">
@@ -150,21 +175,6 @@ export const ProfileView = () => `
                         </button>
                     </form>
                 </div>
-
-                <div class="profile-card profile-summary-card" id="profile-summary" style="display:none;">
-                    <div class="profile-card-header">
-                        <div class="profile-icon summary-icon">
-                            <i data-lucide="user-check"></i>
-                        </div>
-                        <div>
-                            <h3>Profile Summary</h3>
-                            <p>Your saved farm details</p>
-                        </div>
-                    </div>
-                    <div class="summary-grid" id="summary-content">
-                        <!-- Filled by JS -->
-                    </div>
-                </div>
             </div>
         </div>
     </section>
@@ -175,11 +185,107 @@ export const ProfileView = () => `
             min-height: calc(100vh - 80px);
             background: linear-gradient(180deg, #f8f9f5 0%, #eef3eb 100%);
         }
-        .profile-grid {
+        /* --- Display Card (saved profile view) --- */
+        .profile-display-card {
+            max-width: 780px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: var(--radius-lg);
+            padding: 36px;
+            border: 1px solid rgba(45, 90, 39, 0.1);
+            box-shadow: 0 12px 40px rgba(45, 90, 39, 0.08);
+            animation: slideUp 0.4s ease;
+        }
+        .profile-display-card .profile-card-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        .profile-display-card .profile-card-header > div:nth-child(2) {
+            flex: 1;
+        }
+        .profile-edit-btn {
+            margin-left: auto;
+            padding: 10px 20px !important;
+            font-size: 0.9rem;
+            border-radius: var(--radius-md) !important;
+            border: 1.5px solid var(--primary) !important;
+            color: var(--primary) !important;
+            background: transparent !important;
+            transition: all 0.2s ease;
+        }
+        .profile-edit-btn:hover {
+            background: var(--primary) !important;
+            color: white !important;
+            transform: translateY(-1px);
+        }
+        .profile-details-grid {
             display: grid;
-            grid-template-columns: 1fr 340px;
-            gap: 28px;
-            align-items: start;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .profile-detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 18px 20px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, rgba(45, 90, 39, 0.03), rgba(212, 163, 115, 0.06));
+            border: 1px solid rgba(45, 90, 39, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .profile-detail-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(45, 90, 39, 0.08);
+        }
+        .profile-detail-item.full-width {
+            grid-column: 1 / -1;
+        }
+        .profile-detail-label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .profile-detail-value {
+            font-size: 1.05rem;
+            color: var(--primary-dark);
+            font-weight: 600;
+            line-height: 1.4;
+        }
+        .profile-detail-value .crop-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            margin: 3px 4px 3px 0;
+            border-radius: var(--radius-full);
+            background: rgba(45, 90, 39, 0.1);
+            color: var(--primary-dark);
+            font-size: 0.88rem;
+            font-weight: 500;
+        }
+        .no-profile-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+        .no-profile-message i {
+            width: 64px;
+            height: 64px;
+            color: rgba(45, 90, 39, 0.2);
+            margin-bottom: 16px;
+        }
+        .no-profile-message h3 {
+            color: var(--primary-dark);
+            margin-bottom: 8px;
+        }
+
+        /* --- Form Card --- */
+        .profile-grid {
+            max-width: 780px;
+            margin: 0 auto;
         }
         .profile-card {
             background: rgba(255, 255, 255, 0.96);
@@ -216,6 +322,21 @@ export const ProfileView = () => `
         .profile-card-header p {
             color: var(--text-muted);
             font-size: 0.9rem;
+        }
+        .profile-cancel-btn {
+            margin-left: auto;
+            padding: 10px 20px !important;
+            font-size: 0.9rem;
+            border-radius: var(--radius-md) !important;
+            border: 1.5px solid var(--error) !important;
+            color: var(--error) !important;
+            background: transparent !important;
+            transition: all 0.2s ease;
+        }
+        .profile-cancel-btn:hover {
+            background: var(--error) !important;
+            color: white !important;
+            transform: translateY(-1px);
         }
         .profile-form {
             display: flex;
@@ -308,37 +429,12 @@ export const ProfileView = () => `
             padding: 14px;
             font-size: 1rem;
         }
-        .summary-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .summary-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 14px;
-            border-radius: var(--radius-sm);
-            background: rgba(45, 90, 39, 0.04);
-        }
-        .summary-label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            font-weight: 500;
-        }
-        .summary-value {
-            font-size: 0.92rem;
-            color: var(--primary-dark);
-            font-weight: 600;
-            text-align: right;
-            max-width: 60%;
-        }
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
         @media (max-width: 900px) {
-            .profile-grid {
+            .profile-details-grid {
                 grid-template-columns: 1fr;
             }
             .form-row {
@@ -346,8 +442,15 @@ export const ProfileView = () => `
             }
         }
         @media (max-width: 560px) {
-            .profile-card {
+            .profile-card,
+            .profile-display-card {
                 padding: 20px;
+            }
+            .profile-edit-btn,
+            .profile-cancel-btn {
+                width: 100%;
+                text-align: center;
+                margin-top: 8px;
             }
         }
     </style>

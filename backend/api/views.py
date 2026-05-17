@@ -445,6 +445,9 @@ def detect_disease(request):
     user_id = request.data.get('user_id', '')
     provider = 'huggingface' # Changed back to huggingface
     language = request.data.get('language', 'en')
+    mode = request.data.get('mode', 'text')
+
+    print(f"[Disease Detection] Received request - language: {language}, mode: {mode}, user_id: {user_id}")
 
     if not image_file:
         return Response({"error": "No image file provided"}, status=400)
@@ -475,11 +478,39 @@ def detect_disease(request):
             "image_url": image_url,
         }, status=500)
 
-    # Generate treatment advice using LLM
+    # Generate treatment advice using LLM in selected language
     treatment_prompt = build_treatment_prompt(result, language)
     treatment_advice = ""
     if treatment_prompt:
+        print(f"[Disease Detection] Generating treatment in language: {language}")
         treatment_advice = generate_response(treatment_prompt, "", language=language)
+
+    # Generate audio if voice mode is enabled
+    audio_url = ""
+    if mode == 'voice' and treatment_advice:
+        print(f"[Disease Detection] Voice mode ON - generating TTS audio in language: {language}")
+        # Get user's TTS provider preference
+        tts_provider = 'edge'
+        if user_id:
+            try:
+                user_settings = UserSettings.objects.get(user_id=user_id)
+                tts_provider = user_settings.tts_provider
+            except UserSettings.DoesNotExist:
+                pass
+
+        audio_filename = generate_audio(
+            treatment_advice,
+            language=language,
+            provider=tts_provider
+        )
+        if audio_filename:
+            filename = os.path.basename(audio_filename)
+            audio_url = request.build_absolute_uri(settings.MEDIA_URL + filename)
+            print(f"[Disease Detection] TTS audio generated: {audio_url}")
+        else:
+            print(f"[Disease Detection] TTS audio generation FAILED")
+    elif mode != 'voice':
+        print(f"[Disease Detection] Voice mode OFF (mode={mode}), skipping TTS")
 
     # Clean up temp file
     try:
@@ -495,6 +526,7 @@ def detect_disease(request):
         "is_healthy": result.get("is_healthy", False),
         "treatment": treatment_advice,
         "image_url": image_url,
+        "audio_url": audio_url,
         "provider": result.get("provider", provider),
     })
 
