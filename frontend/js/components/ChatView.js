@@ -53,6 +53,10 @@ export const ChatView = () => `
                     <button class="voice-btn voice-stop-btn" id="voice-stop-btn" title="Stop Voice Response" style="display:none;">
                         <i data-lucide="square"></i>
                     </button>
+                    <label class="voice-btn image-upload-btn" id="image-upload-label" title="Upload crop image for disease detection">
+                        <i data-lucide="camera"></i>
+                        <input type="file" id="disease-image-input" accept="image/*" capture="environment" style="display:none;">
+                    </label>
                 </div>
                 <input type="text" id="chat-input" class="chat-input" placeholder="Ask about crops, weather, fertilizers...">
                 <button id="send-btn" class="btn btn-primary send-btn" title="Send message">
@@ -579,6 +583,48 @@ export const ChatView = () => `
             .voice-btn {
                 width: 44px;
                 height: 44px;
+            }
+            .image-upload-btn {
+                cursor: pointer;
+                background: rgba(212, 163, 115, 0.15) !important;
+                border-color: rgba(212, 163, 115, 0.3) !important;
+                color: var(--accent) !important;
+            }
+            .image-upload-btn:hover {
+                background: var(--accent) !important;
+                color: white !important;
+            }
+            .disease-result-card {
+                margin-top: 8px;
+                padding: 14px;
+                border-radius: 14px;
+                background: rgba(255,255,255,0.95);
+                border: 1px solid rgba(45,90,39,0.12);
+            }
+            .disease-result-card .disease-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin-bottom: 8px;
+            }
+            .disease-result-card .disease-name {
+                font-weight: 700;
+                font-size: 1rem;
+                color: var(--primary-dark);
+            }
+            .disease-result-card .disease-confidence {
+                font-size: 0.82rem;
+                padding: 2px 8px;
+                border-radius: 999px;
+                background: rgba(16,185,129,0.12);
+                color: var(--success);
+                font-weight: 600;
+            }
+            .disease-result-card .disease-image-preview {
+                width: 100%;
+                max-width: 200px;
+                border-radius: 10px;
+                margin-bottom: 8px;
             }
             .send-btn {
                 padding: 0;

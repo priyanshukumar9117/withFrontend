@@ -29,9 +29,18 @@
             <nav class="nav-links">
                 <a href="#" onclick="navigateTo('landing')">Home</a>
                 <a href="#" onclick="navigateTo('chat')">Ask AI</a>
+                <a href="#" onclick="navigateTo('weather')">Weather</a>
+                <a href="#" onclick="navigateTo('mandi')">Mandi Prices</a>
+                <a href="#" onclick="navigateTo('profile')">My Farm</a>
                 <a href="#" onclick="navigateTo('about')">About</a>
             </nav>
             <div class="nav-actions">
+                <button class="btn btn-outline" id="nav-auth-btn" onclick="navigateTo('auth')">
+                    Login
+                </button>
+                <button class="btn btn-logout" id="nav-logout-btn" onclick="handleLogout()" style="display:none;">
+                    Logout
+                </button>
                 <button class="btn btn-primary" onclick="navigateTo('chat')">
                     Ask a Question
                 </button>

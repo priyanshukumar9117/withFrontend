@@ -133,6 +133,22 @@ button {
     color: white;
 }
 
+.btn-logout {
+    background-color: transparent;
+    border: 2px solid var(--error);
+    color: var(--error);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-logout:hover {
+    background-color: var(--error);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
 /* Footer */
 .footer {
     background-color: #f1f3ee;
